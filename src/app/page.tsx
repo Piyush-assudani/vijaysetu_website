@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Search,
   Users,
   Activity,
   CheckCircle2,
+  AlertCircle,
   Phone,
   MessageCircle,
   Sparkles,
@@ -19,8 +20,6 @@ import {
   Layers,
   FileSpreadsheet,
   Lock,
-  Headphones,
-  Database,
   Globe,
   ExternalLink,
 } from 'lucide-react';
@@ -32,33 +31,41 @@ export default function LandingPage() {
   // Mobile Nav State
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Slip Simulator State
+  // Slip Simulator State (generic placeholders, no personal names)
   const [slipMode, setSlipMode] = useState<'photo' | 'text'>('photo');
-  const [candidateName, setCandidateName] = useState('रोहित शर्मा');
-  const [candidateParty, setCandidateParty] = useState('विकास मोर्चा');
+  const [candidateName, setCandidateName] = useState('प्रत्याशी का नाम');
+  const [candidateParty, setCandidateParty] = useState('पार्टी / मोर्चा');
   const [candidateSymbol, setCandidateSymbol] = useState('कमल / टॉर्च / कप-प्लेट');
-  const [voterName, setVoterName] = useState('सुरेश कुमार वर्मा');
-  const [voterFather, setVoterFather] = useState('रामनारायण वर्मा');
+  const [voterName, setVoterName] = useState('मतदाता नमूना');
+  const [voterFather, setVoterFather] = useState('अभिभावक का नाम');
   const [voterWard, setVoterWard] = useState('4');
   const [voterBooth, setVoterBooth] = useState('37');
   const [voterSerial, setVoterSerial] = useState('342');
   const [voterHouse, setVoterHouse] = useState('27क');
-  const [voterEpic, setVoterEpic] = useState('SSB0683086');
+  const [voterEpic, setVoterEpic] = useState('VJY0001024');
   const [pollingStation, setPollingStation] = useState('राजकीय उच्च माध्यमिक विद्यालय, कमरा नं. 2');
 
   // Role Tab State
   const [activeTab, setActiveTab] = useState<'worker' | 'warroom' | 'polling'>('warroom');
 
-  // Lead Modal
+  // Lead Modal + Floating Toast Feedback
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [leadError, setLeadError] = useState('');
+  const [siteToast, setSiteToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [leadForm, setLeadForm] = useState({
     name: '',
     phone: '',
     constituency: '',
     electionType: 'विधानसभा (Assembly)',
   });
+
+  useEffect(() => {
+    if (!siteToast) return;
+    const timer = window.setTimeout(() => setSiteToast(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [siteToast]);
 
   // FAQ Accordion State
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
@@ -67,18 +74,18 @@ export default function LandingPage() {
     {
       id: 'search',
       title: 'सुपरफास्ट वोटर सर्च',
-      subtitle: '0.2s Instant Search Engine',
+      subtitle: 'Bilingual Instant Search Engine',
       icon: Search,
-      badge: 'बिजली जैसी गति',
-      description: 'नाम, पिता/पति के नाम, मकान संख्या, वार्ड या EPIC नंबर से मात्र 0.2 सेकंड में मतदाता खोजें। हिंदी और अंग्रेजी दोनों में बिना किसी स्पेलिंग गलती के सटीक परिणाम।',
+      badge: 'त्वरित परिणाम',
+      description: 'नाम, पिता/पति के नाम, मकान संख्या, वार्ड या EPIC नंबर से तुरंत मतदाता खोजें। हिंदी और अंग्रेजी दोनों में फॉनेटिक सर्च के साथ सटीक परिणाम।',
       features: [
         'देवनागरी व अंग्रेज़ी दोनों में तेज़ फॉनेटिक सर्च',
         'अल्फाबेटिकल व मकानवार तुरंत फ़िल्टरिंग',
         '2G / कमजोर इंटरनेट पर भी बिना रुकावट सर्च',
         'मोबाइल व डेस्कटॉप दोनों के लिए अनुकूलित'
       ],
-      metric: '0.2 सेकंड',
-      metricSub: 'लाखों वोटर्स में तुरंत रिजल्ट'
+      metric: 'तुरंत खोज',
+      metricSub: 'वार्ड, बूथ व क्रमांक अनुसार फ़िल्टर'
     },
     {
       id: 'whatsapp',
@@ -191,43 +198,94 @@ export default function LandingPage() {
 
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLeadError('');
+
+    const trimmedName = leadForm.name.trim();
+    const cleanedPhone = leadForm.phone.replace(/\D/g, '').slice(-10);
+    const trimmedConstituency = leadForm.constituency.trim();
+
+    if (trimmedName.length < 2) {
+      const msg = 'कृपया कम से कम 2 अक्षरों का मान्य नाम दर्ज करें।';
+      setLeadError(msg);
+      setSiteToast({ type: 'error', message: msg });
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(cleanedPhone)) {
+      const msg = 'कृपया 10 अंकों का सही भारतीय मोबाइल नंबर दर्ज करें।';
+      setLeadError(msg);
+      setSiteToast({ type: 'error', message: msg });
+      return;
+    }
+
+    if (trimmedConstituency.length < 2) {
+      const msg = 'कृपया अपनी विधानसभा, नगर निगम या वार्ड का नाम दर्ज करें।';
+      setLeadError(msg);
+      setSiteToast({ type: 'error', message: msg });
+      return;
+    }
+
     setLeadSubmitting(true);
 
-    const waText = `नमस्ते VijaySetu टीम, मुझे चुनाव वॉर-रूम और वोटर सॉफ्टवेयर का लाइव डेमो चाहिए।\n\nउम्मीदवार / नाम: ${leadForm.name}\nमोबाइल: ${leadForm.phone}\nक्षेत्र / वार्ड: ${leadForm.constituency}\nचुनाव स्तर: ${leadForm.electionType}`;
+    const payload = {
+      name: trimmedName,
+      phone: cleanedPhone,
+      constituency: trimmedConstituency,
+      electionType: leadForm.electionType,
+    };
+
+    const waText = `नमस्ते VijaySetu टीम, मुझे चुनाव वॉर-रूम और वोटर सॉफ्टवेयर का लाइव डेमो चाहिए।\n\nउम्मीदवार / नाम: ${payload.name}\nमोबाइल: ${payload.phone}\nक्षेत्र / वार्ड: ${payload.constituency}\nचुनाव स्तर: ${payload.electionType}`;
     const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
 
-    try {
-      // Post to backend database so it appears in Admin Panel
-      const targets = [
-        'https://vijaysetu.vercel.app/api/admin/leads',
-        'https://vijaysetu.piyushassudani.in/api/admin/leads',
-        'http://localhost:5002/api/admin/leads',
-      ];
-      for (const target of targets) {
-        try {
-          const res = await fetch(target, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(leadForm),
-          });
-          if (res.ok) break;
-        } catch {
-          // try next target
+    const targets = ['https://vijaysetu.piyushassudani.in/api/admin/leads'];
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      targets.unshift('http://localhost:5002/api/admin/leads');
+    }
+
+    let savedToServer = false;
+    let lastServerError = '';
+
+    for (const target of targets) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch(target, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          savedToServer = true;
+          break;
         }
+        const errBody = await res.json().catch(() => null);
+        if (errBody?.message) lastServerError = String(errBody.message);
+      } catch {
+        // try next target
+      } finally {
+        window.clearTimeout(timeoutId);
       }
-    } catch (err) {
-      console.warn('Backend leads API warning:', err);
     }
 
     setLeadSubmitting(false);
+
+    if (!savedToServer) {
+      const errMsg = lastServerError || 'सर्वर से अभी संपर्क नहीं हो सका — कृपया सीधे WhatsApp से जुड़ें।';
+      setLeadError(errMsg);
+      setSiteToast({ type: 'error', message: errMsg });
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     setLeadSubmitted(true);
+    setSiteToast({ type: 'success', message: 'आपका डेमो अनुरोध सफलतापूर्वक दर्ज हो गया है!' });
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
 
-    // Open WhatsApp to +91 72310 77770
-    window.open(waUrl, '_blank');
-
-    setTimeout(() => {
+    window.setTimeout(() => {
       setLeadModalOpen(false);
       setLeadSubmitted(false);
+      setLeadError('');
       setLeadForm({ name: '', phone: '', constituency: '', electionType: 'विधानसभा (Assembly)' });
     }, 2800);
   };
@@ -262,7 +320,7 @@ export default function LandingPage() {
             {/* Logo (shrink-0 prevents crushing) */}
             <a href="#" className="flex items-center space-x-2.5 sm:space-x-3 group shrink-0">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="VijaySetu Logo"
                 className="w-10 h-10 sm:w-11 sm:h-11 object-contain rounded-xl shadow-sm ring-1 ring-slate-200/80 group-hover:scale-105 transition-transform bg-white shrink-0"
               />
@@ -475,23 +533,23 @@ export default function LandingPage() {
                 </a>
               </div>
 
-              {/* Metrics Bar */}
+              {/* Platform Capability Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-200">
                 <div>
-                  <div className="text-2xl font-black text-emerald-700">4+ करोड़</div>
-                  <div className="text-xs text-slate-500 font-medium">वोटर्स मैनेज्ड</div>
+                  <div className="text-lg sm:text-xl font-black text-emerald-700">ऑफ़लाइन-फर्स्ट</div>
+                  <div className="text-xs text-slate-500 font-medium">कम नेटवर्क में भी बूथ सिंक</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900">1,200+</div>
-                  <div className="text-xs text-slate-500 font-medium">सफल चुनाव</div>
+                  <div className="text-lg sm:text-xl font-black text-slate-900">हिंदी + अंग्रेज़ी</div>
+                  <div className="text-xs text-slate-500 font-medium">द्विभाषी स्मार्ट वोटर खोज</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-emerald-700">99.8%</div>
-                  <div className="text-xs text-slate-500 font-medium">डेटा शुद्धता</div>
+                  <div className="text-lg sm:text-xl font-black text-emerald-700">WhatsApp + प्रिंट</div>
+                  <div className="text-xs text-slate-500 font-medium">एक-क्लिक डिजिटल पर्ची इंजन</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900">8.4x</div>
-                  <div className="text-xs text-slate-500 font-medium">तेज़ वोटर संपर्क</div>
+                  <div className="text-lg sm:text-xl font-black text-slate-900">24×7 सुरक्षा</div>
+                  <div className="text-xs text-slate-500 font-medium">रोल-आधारित सुरक्षित एक्सेस</div>
                 </div>
               </div>
             </div>
@@ -505,7 +563,7 @@ export default function LandingPage() {
                 {/* WhatsApp Chat Header */}
                 <div className="bg-[#075e54] p-3 rounded-2xl flex items-center space-x-3 mb-3 text-white shadow-sm">
                   <img
-                    src="/logo.png"
+                    src="/logo.webp"
                     alt="VijaySetu"
                     className="w-9 h-9 rounded-full bg-white object-contain p-0.5 shadow-sm"
                   />
@@ -1053,23 +1111,23 @@ export default function LandingPage() {
 
                 <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-md space-y-4">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <div className="font-bold text-slate-900 text-sm">लाइव वॉर-रूम मॉनिटर (37-पचपदरा)</div>
+                    <div className="font-bold text-slate-900 text-sm">लाइव वॉर-रूम मॉनिटर (विधानसभा क्षेत्र)</div>
                     <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                      LIVE • 2:30 PM
+                      LIVE VIEW
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="text-lg font-black text-slate-900">2,42,100</div>
-                      <div className="text-[10px] text-slate-500">कुल मतदाता</div>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+                    <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="text-xs sm:text-sm font-black text-slate-900">वार्ड / बूथ</div>
+                      <div className="text-[10px] text-slate-500">रीयल-टाइम गणना</div>
                     </div>
-                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                      <div className="text-lg font-black text-emerald-700">54.8%</div>
-                      <div className="text-[10px] text-emerald-800">वर्तमान पोलिंग</div>
+                    <div className="p-2.5 sm:p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                      <div className="text-xs sm:text-sm font-black text-emerald-700">टर्नआउट %</div>
+                      <div className="text-[10px] text-emerald-800">प्रति घंटे अपडेट</div>
                     </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="text-lg font-black text-slate-900">238 / 238</div>
-                      <div className="text-[10px] text-slate-500">बूथ कनेक्टेड</div>
+                    <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="text-xs sm:text-sm font-black text-slate-900">फील्ड सिंक</div>
+                      <div className="text-[10px] text-slate-500">सभी बूथ सक्रिय</div>
                     </div>
                   </div>
                 </div>
@@ -1113,21 +1171,21 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-md space-y-3">
-                  <div className="font-bold text-slate-900 text-sm">पन्ना प्रमुख: मोहन लाल (पन्ना नं. 14)</div>
+                  <div className="font-bold text-slate-900 text-sm">बूथ स्तर पन्ना सूची (पन्ना नं. 14 नमूना)</div>
                   <div className="space-y-2">
-                    <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 flex justify-between items-center text-xs">
-                      <div>
-                        <strong>रमेश कुमार शर्मा (क्र. 121)</strong>
-                        <div className="text-[10px] text-slate-500">मकान 42 • पक्षधर (Core Supporter)</div>
+                    <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 flex justify-between items-center gap-2 text-xs">
+                      <div className="min-w-0">
+                        <strong>मतदाता सदस्य क (क्र. 121)</strong>
+                        <div className="text-[10px] text-slate-500">मकान 42 • पक्षधर (Supporter Tag)</div>
                       </div>
-                      <span className="text-emerald-700 font-bold bg-white px-2 py-1 rounded-md border border-emerald-200">सत्यापित</span>
+                      <span className="text-emerald-700 font-bold bg-white px-2 py-1 rounded-md border border-emerald-200 shrink-0">सत्यापित</span>
                     </div>
-                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex justify-between items-center text-xs">
-                      <div>
-                        <strong>कैलाश चंद्र जाट (क्र. 122)</strong>
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex justify-between items-center gap-2 text-xs">
+                      <div className="min-w-0">
+                        <strong>मतदाता सदस्य ख (क्र. 122)</strong>
                         <div className="text-[10px] text-slate-500">मकान 43 • न्यूट्रल (Swing Voter)</div>
                       </div>
-                      <span className="text-amber-700 font-bold bg-white px-2 py-1 rounded-md border border-amber-200">फॉलो-अप</span>
+                      <span className="text-amber-700 font-bold bg-white px-2 py-1 rounded-md border border-amber-200 shrink-0">फॉलो-अप</span>
                     </div>
                   </div>
                 </div>
@@ -1171,10 +1229,10 @@ export default function LandingPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-md space-y-3">
-                  <div className="font-bold text-slate-900 text-sm">बूथ डेस्क • कमरा नं. 2 (भाग 37)</div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
-                    <span>मतदान स्थिति: <strong>642 / 980 मत डाले गए</strong></span>
-                    <span className="text-emerald-700 font-black">65.5%</span>
+                  <div className="font-bold text-slate-900 text-sm">बूथ डेस्क • मतदान केंद्र लाइव व्यू</div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center gap-2 text-xs">
+                    <span>मतदान स्थिति: <strong>बूथ क्रमांक अनुसार लाइव मार्किंग</strong></span>
+                    <span className="text-emerald-700 font-black shrink-0">LIVE SYNC</span>
                   </div>
                 </div>
               </div>
@@ -1484,7 +1542,7 @@ export default function LandingPage() {
             <div className="md:col-span-2 space-y-4">
               <div className="flex items-center space-x-3">
                 <img
-                  src="/logo.png"
+                  src="/logo.webp"
                   alt="VijaySetu Logo"
                   className="w-12 h-12 object-contain rounded-xl bg-white/10 p-1 ring-1 ring-white/10"
                 />
@@ -1574,7 +1632,7 @@ export default function LandingPage() {
                 आधिकारिक वेबसाइट
               </a>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
               <a href="https://vijaysetu-website.vercel.app" className="hover:text-emerald-400 font-semibold">वेबसाइट</a>
               <a href="/privacy" className="hover:text-slate-300">गोपनीयता नीति (Privacy Policy)</a>
               <a href="/terms" className="hover:text-slate-300">नियम व शर्तें (Terms)</a>
@@ -1635,7 +1693,7 @@ export default function LandingPage() {
               <div>
                 <div className="mb-6 flex items-start space-x-3.5">
                   <img
-                    src="/logo.png"
+                    src="/logo.webp"
                     alt="VijaySetu"
                     className="w-12 h-12 object-contain rounded-2xl p-1 bg-emerald-50 border border-emerald-200 shadow-sm shrink-0"
                   />
@@ -1652,15 +1710,28 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <form onSubmit={handleLeadSubmit} className="space-y-3.5">
+                {leadError && (
+                  <div
+                    role="alert"
+                    className="mb-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-800"
+                  >
+                    <AlertCircle size={16} className="shrink-0 text-rose-600 mt-0.5" />
+                    <span>{leadError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleLeadSubmit} className="space-y-3.5" noValidate>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">आपका नाम / प्रत्याशी का नाम</label>
                     <input
                       type="text"
                       required
-                      placeholder="उदा. रोहित शर्मा"
+                      placeholder="प्रत्याशी / आयोजक का नाम लिखें"
                       value={leadForm.name}
-                      onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
+                      onChange={(e) => {
+                        setLeadForm({ ...leadForm, name: e.target.value });
+                        if (leadError) setLeadError('');
+                      }}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                     />
                   </div>
@@ -1669,10 +1740,15 @@ export default function LandingPage() {
                     <label className="block text-xs font-semibold text-slate-700 mb-1">मोबाइल नंबर (WhatsApp वाला)</label>
                     <input
                       type="tel"
+                      inputMode="numeric"
                       required
-                      placeholder="उदा. 98290XXXXX"
+                      maxLength={14}
+                      placeholder="10 अंकों का मोबाइल नंबर लिखें"
                       value={leadForm.phone}
-                      onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                      onChange={(e) => {
+                        setLeadForm({ ...leadForm, phone: e.target.value });
+                        if (leadError) setLeadError('');
+                      }}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                     />
                   </div>
@@ -1682,9 +1758,12 @@ export default function LandingPage() {
                     <input
                       type="text"
                       required
-                      placeholder="उदा. 37-पचपदरा या वार्ड 14"
+                      placeholder="उदा. विधानसभा / नगर निगम / वार्ड नं."
                       value={leadForm.constituency}
-                      onChange={(e) => setLeadForm({ ...leadForm, constituency: e.target.value })}
+                      onChange={(e) => {
+                        setLeadForm({ ...leadForm, constituency: e.target.value });
+                        if (leadError) setLeadError('');
+                      }}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:bg-white"
                     />
                   </div>
@@ -1720,6 +1799,33 @@ export default function LandingPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+      {/* FLOATING STATUS TOAST POPUP */}
+      {siteToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed top-4 left-3 right-3 sm:left-auto sm:right-5 sm:w-96 z-[99999] flex items-start gap-3 rounded-xl border p-3.5 shadow-2xl backdrop-blur-md ${
+            siteToast.type === 'success'
+              ? 'bg-emerald-950/95 border-emerald-500/60 text-emerald-50'
+              : 'bg-rose-950/95 border-rose-500/60 text-rose-50'
+          }`}
+        >
+          {siteToast.type === 'success' ? (
+            <CheckCircle2 size={18} className="shrink-0 text-emerald-400 mt-0.5" />
+          ) : (
+            <AlertCircle size={18} className="shrink-0 text-rose-400 mt-0.5" />
+          )}
+          <div className="flex-1 text-xs sm:text-sm font-semibold leading-snug">{siteToast.message}</div>
+          <button
+            type="button"
+            onClick={() => setSiteToast(null)}
+            aria-label="सूचना बंद करें"
+            className="text-white/70 hover:text-white shrink-0"
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
     </div>

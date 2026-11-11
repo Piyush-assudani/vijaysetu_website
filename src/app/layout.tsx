@@ -65,13 +65,6 @@ export const metadata: Metadata = {
         alt: 'VijaySetu - Bharat Ka #1 Election Management Software & Digital War Room',
         type: 'image/png',
       },
-      {
-        url: '/logo.png',
-        width: 512,
-        height: 512,
-        alt: 'VijaySetu Logo',
-        type: 'image/png',
-      },
     ],
   },
   twitter: {
@@ -105,7 +98,7 @@ const jsonLd = {
       url: siteUrl,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteUrl}/logo.png`,
+        url: `${siteUrl}/logo.webp`,
         width: 512,
         height: 512,
       },
@@ -160,12 +153,6 @@ export default function RootLayout({
   return (
     <html lang="hi" className="light scroll-smooth">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
